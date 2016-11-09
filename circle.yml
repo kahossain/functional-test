@@ -5,7 +5,8 @@ machine:
 test:
   override:
     # default CircleCI test action is 'mvn integration-test'
-    - mvn test
+    commands:
+    - cd automation-test && mvn test 
   post:
     # copy the unit test results to the CircleCI location
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
@@ -13,15 +14,3 @@ test:
     #
     # upload code coverage metrics
     - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN || echo "Codecov did not collect coverage reports"
-
-deployment:
-  develop:
-    branch: master
-    commands:
-      # migrate the cbi-api-test::AQUA database
-      - cd automation-test && mvn test 
-          
-      #
-      # push the code to cbi-api-test
-      #- git push git@heroku.com:cbi-api-test.git $CIRCLE_SHA1:master
- 
