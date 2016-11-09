@@ -1,0 +1,36 @@
+machine:
+  java:
+    version: oraclejdk8
+
+test:
+  override:
+    # default CircleCI test action is 'mvn integration-test'
+    - mvn test
+  post:
+    # copy the unit test results to the CircleCI location
+    - mkdir -p $CIRCLE_TEST_REPORTS/junit/
+    - find . -type f -regex ".*/target/surefire-reports/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
+    #
+    # upload code coverage metrics
+    - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN || echo "Codecov did not collect coverage reports"
+
+deployment:
+  develop:
+    branch: develop
+    commands:
+      # migrate the cbi-api-test::AQUA database
+      - cd api-internal-db && mvn compile flyway:repair flyway:migrate -Dflyway.user=$PG_USERNAME_DEV -Dflyway.password=$PG_PASSWORD_DEV -Dflyway.url=jdbc:postgresql://$PG_HOST_DEV:$PG_PORT_DEV/$PG_DATABASE_DEV?sslmode=require -Dflyway.outOfOrder=true:
+          timeout: 3600
+      #
+      # push the code to cbi-api-test
+      - git push git@heroku.com:cbi-api-test.git $CIRCLE_SHA1:master
+  qa:
+    branch: test
+    commands:
+      # migrate the cbi-api-internal-qa::DATABASE database (NO REPAIR)
+      - cd api-internal-db && mvn compile flyway:migrate -Dflyway.user=$PG_USERNAME_QA -Dflyway.password=$PG_PASSWORD_QA -Dflyway.url=jdbc:postgresql://$PG_HOST_QA:$PG_PORT_QA/$PG_DATABASE_QA?sslmode=require -Dflyway.outOfOrder=true:
+          timeout: 3600
+      #
+      # push the code to cbi-api-internal-qa
+      - git push git@heroku.com:cbi-api-internal-qa.git $CIRCLE_SHA1:master
+
