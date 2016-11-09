@@ -6,7 +6,7 @@ test:
   override:
     # default CircleCI test action is 'mvn integration-test'
     commands:
-    - cd automation-test && mvn test 
+    - cd automation-test && mvn test :
   post:
     # copy the unit test results to the CircleCI location
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
